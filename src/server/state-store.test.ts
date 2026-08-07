@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
 import type { Cache } from '@nocobase/cache';
 import type { Application } from '@nocobase/server';
+import { describe, expect, it } from 'vitest';
 import { consumeCallbackTicket, consumeOIDCState, saveCallbackTicket, saveOIDCState } from './state-store';
 
 class MemoryCache {
@@ -51,6 +51,7 @@ describe('OIDC state store', () => {
     const testApp = app();
     await saveOIDCState(testApp.cache as Cache, 'state-value', {
       authenticator: 'oidc',
+      callbackPath: '/v/oidc-external/callback',
       codeVerifier: 'code-verifier',
       nonce: 'nonce',
       redirectTo: '/admin',
@@ -61,6 +62,7 @@ describe('OIDC state store', () => {
 
     await expect(consumeOIDCState(testApp, 'state-value')).resolves.toMatchObject({
       authenticator: 'oidc',
+      callbackPath: '/v/oidc-external/callback',
       nonce: 'nonce',
     });
     await expect(consumeOIDCState(testApp, 'state-value')).rejects.toThrow('OIDC state is invalid or expired');
@@ -70,6 +72,7 @@ describe('OIDC state store', () => {
     const testApp = app();
     await saveOIDCState(testApp.cache as Cache, 'state-value', {
       authenticator: 'oidc',
+      callbackPath: '/v/oidc-external/callback',
       codeVerifier: 'code-verifier',
       nonce: 'nonce',
       redirectTo: '/admin',
@@ -94,6 +97,7 @@ describe('OIDC callback ticket store', () => {
     await saveCallbackTicket(testApp.cache as Cache, 'ticket-value', {
       authenticator: 'oidc',
       claims: { iss: 'https://issuer.test', sub: 'user-1' },
+      redirectTo: '/v/admin',
       flowCookieHash: 'hash-flow',
       clientBindingHash: 'hash-binding',
       createdAt: Date.now(),
@@ -101,6 +105,7 @@ describe('OIDC callback ticket store', () => {
 
     await expect(consumeCallbackTicket(testApp, 'ticket-value')).resolves.toMatchObject({
       authenticator: 'oidc',
+      redirectTo: '/v/admin',
       flowCookieHash: 'hash-flow',
       clientBindingHash: 'hash-binding',
     });
@@ -112,6 +117,7 @@ describe('OIDC callback ticket store', () => {
     await saveCallbackTicket(testApp.cache as Cache, 'ticket-value', {
       authenticator: 'oidc',
       claims: { iss: 'https://issuer.test', sub: 'user-1' },
+      redirectTo: '/v/admin',
       flowCookieHash: 'hash-flow',
       clientBindingHash: 'hash-binding',
       createdAt: Date.now(),

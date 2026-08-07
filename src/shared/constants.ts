@@ -13,5 +13,6 @@ export const GET_AUTH_URL_ACTION = 'getAuthUrl';
 export const EXCHANGE_ACTION = 'exchange';
 export const CALLBACK_MARKER_PARAM = 'oidc_external';
 export const CALLBACK_MARKER_VALUE = 'callback';
+export const FRONTEND_CALLBACK_PATH = '/v/oidc-external/callback';
 export const FLOW_COOKIE_NAME = 'oidc_external_flow';
 export const CALLBACK_TICKET_COOKIE_NAME = 'oidc_external_callback_ticket';

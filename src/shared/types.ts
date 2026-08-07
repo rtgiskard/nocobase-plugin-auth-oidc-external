@@ -16,6 +16,7 @@ export interface ExternalOIDCOptions {
 
 export interface OIDCStatePayload {
   authenticator: string;
+  callbackPath: string;
   codeVerifier: string;
   nonce: string;
   redirectTo: string;
@@ -27,6 +28,7 @@ export interface OIDCStatePayload {
 export interface OIDCCallbackTicketPayload {
   authenticator: string;
   claims: OIDCClaims;
+  redirectTo: string;
   flowCookieHash: string;
   clientBindingHash: string;
   createdAt: number;
