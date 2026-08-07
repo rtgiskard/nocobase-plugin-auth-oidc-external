@@ -1,6 +1,6 @@
 {
   "name": "@nocobase/plugin-auth-oidc-external",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "External OIDC authentication plugin for NocoBase.",
   "homepage": "https://github.com/rtgiskard/nocobase-plugin-auth-oidc-external",
   "license": "AGPL-3.0-or-later OR LicenseRef-Commercial",
@@ -18,7 +18,7 @@
     "COMMERCIAL-LICENSE.md"
   ],
   "scripts": {
-    "build": "tsup && node scripts/write-entrypoints.mjs && node scripts/build-client-amd.mjs && node scripts/write-external-version.mjs",
+    "build": "tsup && node scripts/build-client-amd.mjs && node scripts/write-entrypoints.mjs && node scripts/write-external-version.mjs",
     "check": "tsc --noEmit",
     "test": "vitest run",
     "pack:plugin": "npm run build && npm pack",
@@ -28,26 +28,32 @@
     "openid-client": "^6.8.4"
   },
   "peerDependencies": {
-    "@nocobase/auth": "2.0.x",
-    "@nocobase/client": "2.0.x",
-    "@nocobase/plugin-auth": "2.0.x",
-    "@nocobase/server": "2.0.x",
+    "@nocobase/actions": "2.x",
+    "@nocobase/auth": "2.x",
+    "@nocobase/cache": "2.x",
+    "@nocobase/client-v2": "2.x",
+    "@nocobase/plugin-auth": "2.x",
+    "@nocobase/server": "2.x",
     "@types/react": "^18.0.0",
     "antd": "^5.0.0",
     "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react-dom": "^18.0.0",
+    "react-router-dom": "^6.30.1"
   },
   "devDependencies": {
-    "@nocobase/auth": "2.0.60",
-    "@nocobase/client": "2.0.60",
-    "@nocobase/plugin-auth": "2.0.60",
-    "@nocobase/server": "2.0.60",
+    "@nocobase/actions": "2.1.36",
+    "@nocobase/auth": "2.1.36",
+    "@nocobase/cache": "2.1.36",
+    "@nocobase/client-v2": "2.1.36",
+    "@nocobase/plugin-auth": "2.1.36",
+    "@nocobase/server": "2.1.36",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.0",
     "antd": "^5.22.0",
     "esbuild": "^0.27.7",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-router-dom": "6.30.1",
     "tsup": "^8.3.5",
     "typescript": "^5.7.0",
     "vitest": "^4.1.7"
@@ -56,6 +62,8 @@
     "node": ">=22.12"
   },
   "overrides": {
-    "@nocobase/database": "2.0.60"
+    "@nocobase/client": "2.1.36",
+    "@nocobase/database": "2.1.36",
+    "@nocobase/test": "2.1.36"
   }
 }
