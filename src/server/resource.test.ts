@@ -102,7 +102,16 @@ describe('registerActions exchange', () => {
 
     const cookieSet = vi.fn();
     const ctx = {
-      action: { params: { values: { authenticator: 'oidc', binding: 'binding-1', redirectTo: '/admin?keep=1' } } },
+      action: {
+        params: {
+          values: {
+            authenticator: 'oidc',
+            binding: 'binding-1',
+            callbackPath: '/nocobase/v/oidc-external/callback',
+            redirectTo: '/nocobase/v/admin?keep=1',
+          },
+        },
+      },
       cookies: {
         get: (name: string) => (name === 'oidc_external_flow' ? 'existing-flow-cookie' : undefined),
         set: cookieSet,
@@ -141,9 +150,15 @@ describe('registerActions exchange', () => {
       maxAge: 600000,
       overwrite: true,
     });
-    expect(saveOIDCStateMock).toHaveBeenCalledWith(expect.anything(), 'state-1', expect.objectContaining({
-      flowCookieHash: 'hash:existing-flow-cookie',
-    }));
+    expect(saveOIDCStateMock).toHaveBeenCalledWith(
+      expect.anything(),
+      'state-1',
+      expect.objectContaining({
+        callbackPath: '/nocobase/v/oidc-external/callback',
+        flowCookieHash: 'hash:existing-flow-cookie',
+        redirectTo: '/nocobase/v/admin?keep=1',
+      }),
+    );
     expect(ctx.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
     expect(ctx.set).toHaveBeenCalledWith('Pragma', 'no-cache');
   });
@@ -155,6 +170,7 @@ describe('registerActions exchange', () => {
       codeVerifier: 'code-verifier',
       nonce: 'nonce',
       redirectTo: '/admin?keep=1',
+      callbackPath: '/nocobase/v/oidc-external/callback',
       flowCookieHash: 'hash:flow-cookie',
       clientBindingHash: 'hash:binding-1',
       createdAt: Date.now(),
@@ -214,6 +230,7 @@ describe('registerActions exchange', () => {
     );
     expect(ctx.set).toHaveBeenCalledWith('Cache-Control', 'no-store');
     expect(ctx.set).toHaveBeenCalledWith('Pragma', 'no-cache');
+    expect(redirect).toHaveBeenCalledWith('/nocobase/v/oidc-external/callback?oidc_external=callback');
   });
 
   it('exposes exchange action and exchanges ticket for token', async () => {
@@ -224,6 +241,7 @@ describe('registerActions exchange', () => {
     consumeCallbackTicketMock.mockResolvedValue({
       authenticator: 'oidc',
       claims: { iss: 'https://issuer.test', sub: 'user-1' },
+      redirectTo: '/v/admin?keep=1',
       flowCookieHash: 'hash:flow-cookie',
       clientBindingHash: 'hash:binding-1',
       createdAt: Date.now(),
@@ -266,6 +284,6 @@ describe('registerActions exchange', () => {
       maxAge: 0,
       overwrite: true,
     });
-    expect(ctx.body).toEqual({ authenticator: 'oidc', token: 'jwt-token' });
+    expect(ctx.body).toEqual({ authenticator: 'oidc', token: 'jwt-token', redirectTo: '/v/admin?keep=1' });
   });
 });

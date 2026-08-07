@@ -10,7 +10,7 @@ import {
 } from '../shared/constants';
 import { buildAuthorizationRequest, handleAuthorizationCallback } from './oidc';
 import { normalizeOptions } from './options';
-import { buildFrontendCallbackUrl, sanitizeRedirectTo } from './redirect';
+import { buildFrontendCallbackUrl, sanitizeCallbackPath, sanitizeRedirectTo } from './redirect';
 import { consumeCallbackTicket, consumeOIDCState, saveCallbackTicket, saveOIDCState, sha256Base64Url } from './state-store';
 
 interface AuthenticatorRecord {
@@ -107,11 +107,13 @@ export function registerActions(app: Application, resourceName: string) {
         const authenticator = await getAuthenticator(ctx, authenticatorName);
         const options = normalizeOptions(authenticator.options);
         const redirectTo = sanitizeRedirectTo(values.redirectTo);
+        const callbackPath = sanitizeCallbackPath(values.callbackPath);
         const flowCookie = getOrCreateFlowCookie(ctx);
         const request = await buildAuthorizationRequest(options);
 
         await saveOIDCState(ctx.app.cache, request.state, {
           authenticator: authenticatorName,
+          callbackPath,
           codeVerifier: request.codeVerifier,
           nonce: request.nonce,
           redirectTo,
@@ -145,13 +147,14 @@ export function registerActions(app: Application, resourceName: string) {
         await saveCallbackTicket(ctx.app.cache, callbackTicket, {
           authenticator: stored.authenticator,
           claims: result.claims,
+          redirectTo: sanitizeRedirectTo(stored.redirectTo),
           flowCookieHash: stored.flowCookieHash,
           clientBindingHash: stored.clientBindingHash,
           createdAt: Date.now(),
         });
 
         ctx.cookies.set(CALLBACK_TICKET_COOKIE_NAME, callbackTicket, callbackTicketCookieOptions(ctx));
-        ctx.redirect(buildFrontendCallbackUrl(stored.redirectTo));
+        ctx.redirect(buildFrontendCallbackUrl(sanitizeCallbackPath(stored.callbackPath)));
         await next();
       },
       async [EXCHANGE_ACTION](ctx: Context, next: Next) {
@@ -177,6 +180,7 @@ export function registerActions(app: Application, resourceName: string) {
         ctx.body = {
           authenticator: storedTicket.authenticator,
           token: authResponse.token,
+          redirectTo: storedTicket.redirectTo,
         };
         await next();
       },
