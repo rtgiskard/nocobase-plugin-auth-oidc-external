@@ -1,10 +1,11 @@
-import { useAPIClient } from '@nocobase/client';
+import { useApp } from '@nocobase/client-v2';
+import type { Authenticator } from '@nocobase/plugin-auth/client-v2';
 import { App, Button } from 'antd';
 import type { CSSProperties } from 'react';
 import { AUTH_RESOURCE, DEFAULT_BUTTON_HINT, GET_AUTH_URL_ACTION } from '../shared/constants';
 import { removePendingOidcFlow } from './callback';
 import { createAndStorePendingOidcFlow } from './flow-binding';
-import { postSignInRedirectFrom } from './redirect-target';
+import { frontendCallbackPathFrom, postSignInRedirectFrom } from './redirect-target';
 
 const buttonContainerStyle: CSSProperties = {
   marginTop: 12,
@@ -31,13 +32,7 @@ const DEFAULT_BUTTON_LABEL_ZH = '使用组织账号登录';
 const DEFAULT_BUTTON_HINT_ZH = '点击后将跳转到组织统一身份认证，无需在此输入密码。';
 
 interface SignInButtonProps {
-  authenticator?: {
-    name?: string;
-    options?: {
-      buttonLabel?: string;
-      buttonHint?: string;
-    };
-  };
+  authenticator: Authenticator;
 }
 
 function browserLanguage() {
@@ -77,18 +72,21 @@ function defaultButtonText(language?: string) {
 }
 
 export function ExternalOIDCSignInButton(props: SignInButtonProps) {
-  const api = useAPIClient();
+  const app = useApp();
+  const api = app.apiClient;
   const { message } = App.useApp();
   const defaults = defaultButtonText(api.auth.locale ?? browserLanguage());
 
   const signIn = async () => {
     const pending = createAndStorePendingOidcFlow(window.sessionStorage);
     try {
-      const redirectTo = postSignInRedirectFrom(window.location);
+      const basename = app.router.getBasename();
+      const redirectTo = postSignInRedirectFrom(window.location, basename);
       const result = await api.resource(AUTH_RESOURCE)[GET_AUTH_URL_ACTION]({
         values: {
           authenticator: props.authenticator?.name,
           redirectTo,
+          callbackPath: frontendCallbackPathFrom(basename),
           binding: pending.binding,
         },
       });
@@ -111,3 +109,5 @@ export function ExternalOIDCSignInButton(props: SignInButtonProps) {
     </div>
   );
 }
+
+export default ExternalOIDCSignInButton;
