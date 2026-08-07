@@ -1,6 +1,6 @@
 # @nocobase/plugin-auth-oidc-external
 
-External OIDC authentication plugin for NocoBase 2.0.60.
+External OIDC authentication plugin for NocoBase 2.x. This client-v2-only version is tested against NocoBase 2.1.36.
 
 The plugin implements a standard Authorization Code Flow with PKCE for external OIDC providers. The default claim mapping uses common OIDC profile claims, and providers with different claim names can be supported by overriding the claim mapping options.
 
@@ -31,13 +31,20 @@ SignInButton
   -> userinfo fetch with expected sub
   -> server creates short-lived single-use callback ticket in cache
   -> server sets HttpOnly ticket cookie
-  -> local frontend redirect with non-secret callback marker only
+  -> <client-v2 basename>/oidc-external/callback?oidc_external=callback
   -> client calls /api/oidc-external:exchange with binding
   -> server validates ticket + flow cookie + binding hashes
   -> NocoBase user binding via issuer + sub and JWT sign-in JSON response
+  -> client stores the NocoBase session and navigates to sanitized redirectTo
+     (default: /v/admin)
 ```
 
-The callback only redirects to local relative paths and never includes `token`, `authenticator`, OIDC `code/state`, or callback ticket in frontend URLs. External redirect targets are ignored to prevent leakage.
+The two callback addresses have different jobs:
+
+- Configure the provider redirect URI as `/api/oidc-external:redirect`. The IdP sends its authorization response to this server endpoint, where the plugin validates state, nonce, PKCE, and the flow cookie.
+- `/v/oidc-external/callback` is the default public client-v2 route. When NocoBase uses a public-path prefix, the plugin preserves the router basename, for example `/nocobase/v/oidc-external/callback`. The server reaches this state-bound, validated local path only after successful OIDC handling, using the fixed `oidc_external=callback` marker. The page exchanges the HttpOnly ticket and then navigates to the sanitized local `redirectTo`, which defaults to `/v/admin`.
+
+No plugin frontend browser URL receives an authorization code, state value, token, ticket, or client secret. Those values stay in the server exchange, cache, or HttpOnly cookies. External post-login targets are ignored to prevent leakage.
 
 ## Authenticator Options
 
@@ -72,7 +79,16 @@ Create a NocoBase authenticator with `authType = oidc-external` and options like
 
 ## NocoBase Integration
 
-Build and copy the packaged plugin into:
+Install dependencies and build the package:
+
+```bash
+npm ci --allow-remote=all
+npm run build
+```
+
+NocoBase 2.1.36 transitively pins SheetJS through an HTTPS tarball. npm 12 blocks that remote package unless `--allow-remote=all` is supplied. The flag applies only to this command and does not change global npm configuration.
+
+Copy the packaged plugin into:
 
 ```text
 /app/nocobase/storage/plugins/@nocobase/plugin-auth-oidc-external/
@@ -83,6 +99,10 @@ Enable it inside the NocoBase container:
 ```bash
 yarn pm enable @nocobase/plugin-auth-oidc-external
 ```
+
+Open the modern admin UI at `/v/admin/`, then create or enable an authenticator with `authType = oidc-external`. Configure the IdP redirect URI as `https://nocobase.example.com/api/oidc-external:redirect`. After signing out, the configured OIDC button should appear on the client-v2 sign-in page.
+
+The package is client-v2 only. Root `client-v2.js` is NocoBase's discovery marker; `dist/client-v2/index.js` is the runtime bundle loaded by that marker.
 
 For Kubernetes deployments, use an initContainer to copy the plugin artifact into the NocoBase PVC before the main container starts.
 
@@ -157,14 +177,15 @@ You may use, modify, and redistribute the community edition under the AGPL terms
 ## Development
 
 ```bash
-npm install
+npm ci --allow-remote=all
 npm run check
 npm run test
 npm run lint:security
 npm run build
+npm pack --dry-run
 ```
 
-The server bundle includes `openid-client`; NocoBase packages remain peer dependencies provided by the host application.
+These checks have been run against NocoBase 2.1.36. The test suite contains 10 files and 58 tests. It covers the callback exchange, client-v2 basename handling, and security-sensitive behavior without claiming a browser or real-IdP end-to-end run. The server bundle includes `openid-client`; NocoBase packages remain peer dependencies provided by the host application.
 
 Build the artifact image:
 
@@ -172,8 +193,7 @@ Build the artifact image:
 docker build -t registry.example.com/library/nocobase-plugin-auth-oidc-external:v0.1.0 .
 ```
 
-## Hardening TODO
+## Current Limitations
 
-- Add explicit OIDC group to NocoBase role mapping after confirming the target NocoBase role schema in production.
-- Add integration tests against a local OIDC test provider.
-- Add deployment automation to install this plugin from an artifact image.
+- OIDC groups are not mapped to NocoBase roles.
+- The automated suite does not include browser end-to-end tests or integration tests against a real OIDC provider.
