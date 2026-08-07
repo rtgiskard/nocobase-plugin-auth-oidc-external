@@ -3,10 +3,19 @@ import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
 
-const externalPackages = ['@nocobase/auth', '@nocobase/client', '@nocobase/plugin-auth', '@nocobase/server', 'antd', 'react', 'react-dom'];
+const externalPackages = [
+  ['@nocobase/auth', '@nocobase/auth'],
+  ['@nocobase/client-v2', '@nocobase/client-v2'],
+  ['@nocobase/plugin-auth/client-v2', '@nocobase/plugin-auth'],
+  ['@nocobase/server', '@nocobase/server'],
+  ['antd', 'antd'],
+  ['react', 'react'],
+  ['react/jsx-runtime', 'react'],
+  ['react-router-dom', 'react-router-dom'],
+];
 
 const versions = Object.fromEntries(
-  externalPackages.map((packageName) => [packageName, require(`${packageName}/package.json`).version]),
+  externalPackages.map(([moduleId, packageName]) => [moduleId, require(`${packageName}/package.json`).version]),
 );
 
 writeFileSync('dist/externalVersion.js', `module.exports = ${JSON.stringify(versions, null, 2)};\n`);
