@@ -102,7 +102,7 @@ yarn pm enable @nocobase/plugin-auth-oidc-external
 
 Open the modern admin UI at `/v/admin/`, then create or enable an authenticator with `authType = oidc-external`. Configure the IdP redirect URI as `https://nocobase.example.com/api/oidc-external:redirect`. After signing out, the configured OIDC button should appear on the client-v2 sign-in page.
 
-The package is client-v2 only. Root `client-v2.js` is NocoBase's discovery marker; `dist/client-v2/index.js` is the runtime bundle loaded by that marker.
+OIDC functionality remains client-v2 only. Root `client-v2.js` is NocoBase's modern discovery marker, and `dist/client-v2/index.js` is its runtime bundle. Root `client.js` and `dist/client/index.js` provide only a no-op legacy `Plugin` export so NocoBase 2.1.36 can load an enabled package in `/admin` without exposing OIDC controls or behavior there.
 
 For Kubernetes deployments, use an initContainer to copy the plugin artifact into the NocoBase PVC before the main container starts.
 
@@ -185,7 +185,7 @@ npm run build
 npm pack --dry-run
 ```
 
-These checks have been run against NocoBase 2.1.36. The test suite contains 10 files and 58 tests. It covers the callback exchange, client-v2 basename handling, and security-sensitive behavior without claiming a browser or real-IdP end-to-end run. The server bundle includes `openid-client`; NocoBase packages remain peer dependencies provided by the host application.
+These checks have been run against NocoBase 2.1.36. The test suite contains 11 files and 61 tests. It covers the callback exchange, client-v2 basename handling, legacy loader compatibility, and security-sensitive behavior without claiming a browser or real-IdP end-to-end run. The server bundle includes `openid-client`; NocoBase packages remain peer dependencies provided by the host application.
 
 Build the artifact image:
 
