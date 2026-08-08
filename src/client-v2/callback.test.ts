@@ -25,6 +25,7 @@ describe('callback helpers', () => {
 
 describe('completeOidcCallback', () => {
   const setAuthenticator = vi.fn();
+  const setRole = vi.fn();
   const setToken = vi.fn();
   const exchange = vi.fn();
   const request = vi.fn();
@@ -46,7 +47,7 @@ describe('completeOidcCallback', () => {
 
     await completeOidcCallbackInBrowser(
       {
-        auth: { setAuthenticator, setToken },
+        auth: { setAuthenticator, setRole, setToken },
         request,
         resource: () => ({ exchange }),
       },
@@ -73,15 +74,19 @@ describe('completeOidcCallback', () => {
     expect(replaceState).toHaveBeenCalledWith(null, 'title', '/admin?tab=users#a');
     expect(exchange).toHaveBeenCalledWith({ values: { binding: 'binding-1' } });
     expect(setAuthenticator).toHaveBeenCalledWith('oidc');
+    expect(setRole).toHaveBeenCalledWith('');
     expect(setToken).toHaveBeenCalledWith('jwt-token');
-    expect(request).toHaveBeenCalledWith({ url: '/auth:check', skipAuth: true, skipNotify: true });
+    expect(request).toHaveBeenCalledWith({
+      headers: { 'X-Role': false }, url: '/auth:check', skipAuth: true, skipNotify: true,
+    });
     expect(navigate).toHaveBeenCalledWith('/admin?tab=users#a', { replace: true });
     expect(removeItem).toHaveBeenCalledWith(PENDING_FLOW_STORAGE_KEY);
   });
 
-  it('checks auth after setting credentials then navigates without hard reloading the protected target', async () => {
+  it('clears a stale role before checking the exchanged session and navigating', async () => {
     // Given
     const events: string[] = [];
+    let currentRole = 'root';
     getItem.mockReturnValue(JSON.stringify({ binding: 'binding-1', createdAt: Date.now() }));
     exchange.mockImplementation(async () => {
       events.push('exchange');
@@ -95,17 +100,22 @@ describe('completeOidcCallback', () => {
         },
       };
     });
+    setRole.mockImplementation((role: string) => {
+      currentRole = role;
+      events.push('role-clear');
+    });
     setAuthenticator.mockImplementation(() => events.push('authenticator'));
     setToken.mockImplementation(() => events.push('token'));
     request.mockImplementation(async () => {
       events.push('check');
+      if (currentRole === 'root') throw new Error('ROLE_NOT_FOUND_FOR_USER');
       return { data: { data: { id: 1 } } };
     });
     navigate.mockImplementation(() => events.push('navigate'));
 
     // When
     const apiClient = {
-      auth: { setAuthenticator, setToken },
+      auth: { setAuthenticator, setRole, setToken },
       request,
       resource: () => ({ exchange }),
     };
@@ -130,10 +140,16 @@ describe('completeOidcCallback', () => {
 
     // Then
     expect(request).toHaveBeenCalledWith(
-      expect.objectContaining({ url: '/auth:check', skipAuth: true, skipNotify: true }),
+      expect.objectContaining({
+        headers: { 'X-Role': false },
+        url: '/auth:check',
+        skipAuth: true,
+        skipNotify: true,
+      }),
     );
+    expect(setRole).toHaveBeenCalledWith('');
     expect(navigate).toHaveBeenCalledWith('/admin?tab=users#details', { replace: true });
-    expect(events).toEqual(['exchange', 'authenticator', 'token', 'check', 'navigate']);
+    expect(events).toEqual(['exchange', 'role-clear', 'authenticator', 'token', 'check', 'navigate']);
   });
 
   it('clears provisional credentials when the auth check fails', async () => {
@@ -146,7 +162,7 @@ describe('completeOidcCallback', () => {
     await expect(
       completeOidcCallbackInBrowser(
         {
-          auth: { setAuthenticator, setToken },
+          auth: { setAuthenticator, setRole, setToken },
           request,
           resource: () => ({ exchange }),
         },
@@ -173,6 +189,8 @@ describe('completeOidcCallback', () => {
 
     expect(setToken).toHaveBeenNthCalledWith(1, 'jwt-token');
     expect(setToken).toHaveBeenNthCalledWith(2, '');
+    expect(setRole).toHaveBeenCalledOnce();
+    expect(setRole).toHaveBeenCalledWith('');
     expect(setAuthenticator).toHaveBeenNthCalledWith(1, 'oidc');
     expect(setAuthenticator).toHaveBeenNthCalledWith(2, '');
     expect(navigate).not.toHaveBeenCalled();
@@ -185,7 +203,7 @@ describe('completeOidcCallback', () => {
 
     await completeOidcCallbackInBrowser(
       {
-        auth: { setAuthenticator, setToken },
+        auth: { setAuthenticator, setRole, setToken },
         request,
         resource: () => ({ exchange }),
       },
@@ -219,7 +237,7 @@ describe('completeOidcCallback', () => {
   it('does nothing when callback marker is absent', async () => {
     await completeOidcCallbackInBrowser(
       {
-        auth: { setAuthenticator, setToken },
+        auth: { setAuthenticator, setRole, setToken },
         request,
         resource: () => ({ exchange }),
       },

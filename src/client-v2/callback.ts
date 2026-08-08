@@ -4,12 +4,18 @@ import { PENDING_FLOW_STORAGE_KEY } from './storage';
 interface OidcAuthTarget {
   auth: {
     setAuthenticator(authenticator: string): void;
+    setRole(role: string): void;
     setToken(token: string): void;
   };
   resource(resourceName: string): {
     [action: string]: (args: { values: { binding: string } }) => Promise<unknown>;
   };
-  request(options: { url: string; skipAuth: boolean; skipNotify: boolean }): Promise<unknown>;
+  request(options: {
+    headers: { 'X-Role': false };
+    url: string;
+    skipAuth: boolean;
+    skipNotify: boolean;
+  }): Promise<unknown>;
 }
 
 interface CallbackLocation {
@@ -133,10 +139,16 @@ export async function completeOidcCallbackInBrowser(
     });
     const exchange = exchangeDataFrom(result);
     if (!exchange) throw new Error('OIDC exchange payload is invalid');
+    apiClient.auth.setRole('');
     apiClient.auth.setAuthenticator(exchange.authenticator);
     apiClient.auth.setToken(exchange.token);
     try {
-      await apiClient.request({ url: '/auth:check', skipAuth: true, skipNotify: true });
+      await apiClient.request({
+        headers: { 'X-Role': false },
+        url: '/auth:check',
+        skipAuth: true,
+        skipNotify: true,
+      });
     } catch (error) {
       apiClient.auth.setToken('');
       apiClient.auth.setAuthenticator('');
