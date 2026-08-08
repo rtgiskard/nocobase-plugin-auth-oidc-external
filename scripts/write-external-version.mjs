@@ -5,6 +5,7 @@ const require = createRequire(import.meta.url);
 
 const externalPackages = [
   ['@nocobase/auth', '@nocobase/auth'],
+  ['@nocobase/client', '@nocobase/client'],
   ['@nocobase/client-v2', '@nocobase/client-v2'],
   ['@nocobase/plugin-auth/client-v2', '@nocobase/plugin-auth'],
   ['@nocobase/server', '@nocobase/server'],

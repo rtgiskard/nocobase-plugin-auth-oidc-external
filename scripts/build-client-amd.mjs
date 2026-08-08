@@ -1,8 +1,23 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import esbuild from 'esbuild';
 
 const packageName = '@nocobase/plugin-auth-oidc-external';
 const clientModuleName = `${packageName}/client-v2`;
+
+mkdirSync('dist/client', { recursive: true });
+writeFileSync(
+  'dist/client/index.js',
+  [
+    `define("${packageName}", ["@nocobase/client"], function(nocobaseClient) {`,
+    '  "use strict";',
+    '  class PluginExternalOIDCLegacyClient extends nocobaseClient.Plugin {',
+    '    async load() {}',
+    '  }',
+    '  return { __esModule: true, default: PluginExternalOIDCLegacyClient };',
+    '});',
+    '',
+  ].join('\n'),
+);
 
 await esbuild.build({
   entryPoints: ['src/client-v2/index.tsx'],
